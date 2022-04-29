@@ -1,0 +1,386 @@
+openapi: 3.0.2
+info:
+  version: '1.0'
+  title: My Open API Specification
+  description: API Definitions
+tags: []
+servers:
+- url: http://localhost:8080
+  description: development server
+paths:
+  /accounts/{accountId}:
+    get:
+      tags:
+      - Accounts
+      operationId: account.getAccount
+      parameters:
+      - name: Accept-Language
+        in: header
+        schema:
+          type: string
+      - name: accountId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        200:
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        400:
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+        500:
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Accounts
+      operationId: account.deleteAccount
+      parameters:
+      - name: Accept-Language
+        in: header
+        schema:
+          type: string
+      - name: accountId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        200:
+          description: Delete successful
+        400:
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+        500:
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      tags:
+      - Accounts
+      operationId: account.updateBalance
+      parameters:
+      - name: Accept-Language
+        in: header
+        schema:
+          type: string
+      - name: accountId
+        in: path
+        schema:
+          type: string
+        required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Money'
+      responses:
+        200:
+          description: Update successful
+        400:
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+        500:
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /accounts:
+    get:
+      tags:
+      - Accounts
+      operationId: accounts.searchAccounts
+      parameters:
+      - name: Accept-Language
+        in: header
+        schema:
+          type: string
+      - name: account_id
+        in: query
+        schema:
+          type: integer
+          format: int32
+      - name: account_type
+        in: query
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: false
+      - name: phone_number
+        in: query
+        schema:
+          type: string
+        style: form
+        explode: false
+      responses:
+        200:
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accounts'
+        400:
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+        500:
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+      - Accounts
+      operationId: accounts.createAccount
+      parameters:
+      - name: Accept-Language
+        in: header
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+      responses:
+        201:
+          description: Create successful
+        400:
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+        500:
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+      - Accounts
+      operationId: accounts.updateAccount
+      parameters:
+      - name: Accept-Language
+        in: header
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+      responses:
+        200:
+          description: Update successful
+        400:
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        401:
+          description: Unauthorized
+        500:
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Account:
+      required:
+      - 'name '
+      - ' account_type'
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          nullable: false
+          readOnly: true
+        name:
+          type: string
+        owners:
+          type: array
+          items:
+            $ref: '#/components/schemas/Owner'
+        notes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Note'
+        account_type:
+          $ref: '#/components/schemas/AccountType'
+        balance:
+          $ref: '#/components/schemas/Money'
+      discriminator:
+        propertyName: account_type
+    AccountSummary:
+      type: object
+      properties:
+        account_id:
+          type: integer
+          format: int32
+        account_name:
+          type: string
+        account_type:
+          type: integer
+          format: int32
+        balance:
+          $ref: '#/components/schemas/Money'
+    AccountType:
+      type: string
+      enum:
+      - CASH
+      - SAVINGS
+    Accounts:
+      type: object
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountSummary'
+    CashAccount:
+      allOf:
+      - $ref: '#/components/schemas/Account'
+      - type: object
+        properties:
+          monthly_fee:
+            type: number
+            format: double
+    Currency:
+      type: string
+      enum:
+      - USD
+      - CAD
+      - EUR
+    Money:
+      required:
+      - 'amount '
+      - ' currency'
+      type: object
+      properties:
+        amount:
+          type: number
+          format: float
+        currency:
+          $ref: '#/components/schemas/Currency'
+    Note:
+      required:
+      - 'subject '
+      - ' body'
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          nullable: false
+          readOnly: true
+        action:
+          type: string
+          maxLength: 1
+          x-code-set: NoteAction
+        subject:
+          type: string
+          maxLength: 3
+          x-code-set: NoteSubject
+        body:
+          type: string
+        complete_date:
+          type: string
+          format: date
+        follow-up_date:
+          type: string
+          format: date
+    Owner:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          nullable: false
+          readOnly: true
+        first_name:
+          type: string
+        last_name:
+          type: string
+        primary_email:
+          type: string
+        primary_phone:
+          type: string
+    SavingsAccount:
+      allOf:
+      - $ref: '#/components/schemas/Account'
+      - type: object
+        properties:
+          annual_interest:
+            type: number
+            format: double
+    Error:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
+        instance:
+          type: string
+        invalidParameters:
+          type: array
+          items:
+            type: object
+            properties:
+              parameters:
+                type: array
+                items:
+                  type: string
+              reason:
+                type: string
+  securitySchemes:
+    BearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+- BearerToken: []
