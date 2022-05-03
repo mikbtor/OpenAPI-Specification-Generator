@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import xml.etree.ElementTree as ET
-import models.type_models as tm
+import type_models as tm
 from dataclasses import asdict
 
 types = []
