@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import xml.etree.ElementTree as ET
-from models import path_models as pm
+import path_models as pm
 import type_gen as tg
 
 tree = None
