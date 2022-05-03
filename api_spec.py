@@ -1,8 +1,8 @@
 #!/usr/bin/python
 import yaml
 import xml.etree.ElementTree as ET
-import models.path_models as pm
-import models.type_models as tm
+import path_models as pm
+import type_models as tm
 import type_gen as tg
 import path_gen as pg
 from dataclasses import asdict
