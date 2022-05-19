@@ -37,7 +37,6 @@ def get_types(type_guid) -> dict:
     at_tags = {}
     tg_name = ""
     s_req = ""
-    a_req = []
     s_disc = ""
     parent = {}
 
@@ -49,85 +48,93 @@ def get_types(type_guid) -> dict:
         bDisc = False
         bInherits = False
         elem = {}
+        a_req = []
 
         el_id = el.get("{http://schema.omg.org/spec/XMI/2.1}id")
-
-        # Inheritance
-        el_gen = el.find("generalization")
-        if(el_gen is not None):
-            idref = el_gen.get("general")
-            parent = get_ref_type(idref)
-            bInherits = True
-
+        
         # Find the element in the extension
         el_ext = tree.find(f".//element[@{{http://schema.omg.org/spec/XMI/2.1}}idref='{el_id}']")
+
+        # Process only if stereotype is <<Resource>>
+        el_props = el_ext.find("./properties")
+        if el_props.get("stereotype").lower() == "resource":
+
+          # Inheritance
+          el_gen = el.find("generalization")
+          if(el_gen is not None):
+              idref = el_gen.get("general")
+              parent = get_ref_type(idref)
+              bInherits = True
       
-        # Tags for the element       
-        for tg in el_ext.findall(".//tags/tag"):
-            tg_name = tg.get("name")
-            tg_value = tg.get("value")
-            if(tg_name == "required"):
-                s_req = tg_value
-                a_req = s_req.split("|")
-                bReq = True
-            elif(tg_name == "discriminator"):
-                s_disc = tg_value
-                bDisc = True
+          # Tags for the element       
+          for tg in el_ext.findall(".//tags/tag"):
+              tg_name = tg.get("name")
+              tg_value = tg.get("value")
+              if(tg_name == "required"):
+                  s_req = tg_value
+                  l_temp = s_req.split("|")
+                  for a in l_temp:
+                    x = a.strip(" ")
+                    a_req.append(x) 
+                  bReq = True
+              elif(tg_name == "discriminator"):
+                  s_disc = tg_value
+                  bDisc = True
         
-        # Attributes
-        attributes = {}
-        for at in el_ext.findall(".//attributes/attribute"):
-            attribute = {}
-            at_tags = {}
-            p = at.find("./properties")
-            at_type = p.get("type")
-            attribute = get_attrib_desc(at_type)
+          # Attributes
+          attributes = {}
+          for at in el_ext.findall(".//attributes/attribute"):
+              attribute = {}
+              at_tags = {}
+              p = at.find("./properties")
+              at_type = p.get("type")
+              attribute = get_attrib_desc(at_type)
 
-            # Attribute tags
-            at_tags = at.findall(f".//tags/tag")
-            for at_tg in at_tags:
-              s_val = at_tg.get("value")
-              s_name = at_tg.get("name")
-              if(s_val == 'true'):
-                  attribute.update({s_name:True})
-              elif(s_val == 'false'):
-                  attribute.update({s_name:False})
-              elif(s_val.isdigit()):
-                  attribute.update({s_name:int(s_val)})
+              # Attribute tags
+              at_tags = at.findall(f".//tags/tag")
+              for at_tg in at_tags:
+                s_val = at_tg.get("value")
+                s_name = at_tg.get("name")
+                if(s_val == 'true'):
+                    attribute.update({s_name:True})
+                elif(s_val == 'false'):
+                    attribute.update({s_name:False})
+                elif(s_val.isdigit()):
+                    attribute.update({s_name:int(s_val)})
+                else:
+                    attribute.update({s_name:s_val})
+              attributes.update({at.get("name"):attribute.copy()})
+
+          # Associations
+          for a in el_ext.findall("./links/Association"):
+            target_id = a.get("end")
+            if(target_id != el_id):
+              target =  tree.find(f".//connectors/connector/target[@{{http://schema.omg.org/spec/XMI/2.1}}idref='{target_id}']")
+              t_name = target.find("./role").get("name")
+              t_mult = target.find("./type").get("multiplicity")
+              t_type = target.find("./model").get("name")
+              if(t_mult.find("*") > -1):
+                  attributes[t_name] = {"type": "array", "items":  {"$ref": f'#/components/schemas/{t_type}'}}
               else:
-                  attribute.update({s_name:s_val})
-            attributes.update({at.get("name"):attribute.copy()})
+                  attributes[t_name] = {"$ref": f"#/components/schemas/{t_type}"}
 
-        # Associations
-        for a in el_ext.findall("./links/Association"):
-          target_id = a.get("end")
-          if(target_id != el_id):
-            target =  tree.find(f".//connectors/connector/target[@{{http://schema.omg.org/spec/XMI/2.1}}idref='{target_id}']")
-            t_name = target.find("./role").get("name")
-            t_mult = target.find("./type").get("multiplicity")
-            t_type = target.find("./model").get("name")
-            if(t_mult.find("*") > -1):
-                attributes[t_name] = {"type": "array", "items":  {"$ref": f'#/components/schemas/{t_type}'}}
-            else:
-                attributes[t_name] = {"$ref": f"#/components/schemas/{t_type}"}
+          # Put everything together
+          if not bInherits:
+              elem = {"type": "object", "properties": attributes}
+              if bReq:
+                  elem = {"required": a_req, "type": "object", "properties": attributes}
+              if bDisc:
+                  elem["discriminator"] = {"propertyName": s_disc}
+          else:
+              elem = {"allOf": [parent, {"type": "object", "properties": attributes}]}
+              if (bReq):
+                  elem["required"] = s_req
+              if (bDisc):
+                  elem["discriminator"] = {"propertyName": s_disc}
 
-        # Put everything together
-        if not bInherits:
-            elem = {"type": "object", "properties": attributes}
-            if bReq:
-                elem = {"required": a_req, "type": "object", "properties": attributes}
-            if bDisc:
-                elem["discriminator"] = {"propertyName": s_disc}
-        else:
-            elem = {"allOf": [parent, {"type": "object", "properties": attributes}]}
-            if (bReq):
-                elem["required"] = s_req
-            if (bDisc):
-                elem["discriminator"] = {"propertyName": s_disc}
-
-        # In the element inherits from a class, then "allOf" tag has to be included
-        if el_id in used_types:
-            dTypes.update({el.get("name"): elem.copy()})
+          # In the element inherits from a class, then "allOf" tag has to be included
+          if el_id in used_types:
+              dTypes.update({el.get("name"): elem.copy()})
 
     # Enumerations
     for el in tree.findall(".//packagedElement[@{http://schema.omg.org/spec/XMI/2.1}type='uml:Enumeration']"):
@@ -315,6 +322,13 @@ def is_basic_type(type_ref: str) -> tuple[bool, str]:
                 break
     return r
 
+def get_id_by_name(name:str)->str:
+    r = ""
+    for el in tree.findall(".//element"):
+        if(el.get("name") == name and el.get("{http://schema.omg.org/spec/XMI/2.1}type").find("Class") > -1):
+            r = el.get("{http://schema.omg.org/spec/XMI/2.1}idref")
+            break 
+    return r 
 
 def get_ref_type(type_ref: str) -> dict:
     """
