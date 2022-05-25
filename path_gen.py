@@ -18,6 +18,7 @@ def r_200(description: str, return_dict: str,  content_type: str = 'application/
 r_400 = {'description': 'Bad Request', 'content': {
     'application/problem+json': {'schema': {'$ref': '#/components/schemas/Error'}}}}
 r_401 = {"description": "Unauthorized"}
+r_403 = {"description": "Forbidden"}
 r_500 = {'description': 'Internal Server Error', 'content': {
     'application/problem+json': {'schema': {'$ref': '#/components/schemas/Error'}}}}
 
@@ -92,7 +93,7 @@ def get_op_params(path_url: str, op: ET) -> tuple:
     op_stereotype = op.find(".//stereotype").get("stereotype")
     op_name = op.get("name")
 
-    print(op_name, op_stereotype, op_id)
+    #print(op_name, op_stereotype, op_id)
 
     # Accept language
     params.append({"name": "Accept-Language", "in": "header", "schema": {"type": "string"}})
@@ -202,6 +203,9 @@ def get_op_params(path_url: str, op: ET) -> tuple:
                                     tg.used_types.add(tg.get_id_by_name(s_type[1]))
                                     ret["schema"] = {"type": "array", "items": {"$ref": '#/components/schemas/{}'.format(p_type[7:-2])}}
             break
+    if  op.find(".//stereotype").get("stereotype") == "GET" and op.get("name").find("search")>-1:
+        params.append({"name": "offset", "in": "query", "schema": {"type": "integer", "format":"int32"}})
+        params.append({"name": "page_size", "in": "query", "schema": {"type": "integer", "format":"int32"}})
     return params, ret
 
 
