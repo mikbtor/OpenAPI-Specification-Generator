@@ -38,6 +38,16 @@ paths:
         in: query
         schema:
           type: string
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          format: int32
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+          format: int32
       responses:
         200:
           description: Search results
@@ -124,7 +134,7 @@ paths:
   /parties/{partiy_id}/phones:
     get:
       tags:
-      - Parties
+      - Party
       operationId: phones.get
       parameters:
       - name: Accept-Language
@@ -161,7 +171,7 @@ paths:
                 $ref: '#/components/schemas/Error'
     post:
       tags:
-      - Parties
+      - Party
       operationId: phones.create
       parameters:
       - name: Accept-Language
@@ -197,7 +207,7 @@ paths:
                 $ref: '#/components/schemas/Error'
     put:
       tags:
-      - Parties
+      - Party
       operationId: phones.update
       parameters:
       - name: Accept-Language
@@ -234,7 +244,7 @@ paths:
   /parties/{party_id}/phones/{phone_id}:
     patch:
       tags:
-      - Parties
+      - Party
       operationId: phone.partial_update
       parameters:
       - name: Accept-Language
@@ -275,7 +285,7 @@ paths:
                 $ref: '#/components/schemas/Error'
     delete:
       tags:
-      - Parties
+      - Party
       operationId: phone.delete
       parameters:
       - name: Accept-Language
@@ -312,7 +322,7 @@ paths:
   /parties/{party_id}/emails:
     get:
       tags:
-      - Parties
+      - Party
       operationId: emails.get
       parameters:
       - name: Accept-Language
@@ -345,7 +355,7 @@ paths:
                 $ref: '#/components/schemas/Error'
     post:
       tags:
-      - Parties
+      - Party
       operationId: emails.create
       parameters:
       - name: Accept-Language
@@ -381,7 +391,7 @@ paths:
                 $ref: '#/components/schemas/Error'
     put:
       tags:
-      - Parties
+      - Party
       operationId: emails.update
       parameters:
       - name: Accept-Language
@@ -418,7 +428,7 @@ paths:
   /parties/{party_id}/emails/{email_id}:
     patch:
       tags:
-      - Parties
+      - Party
       operationId: email.partial_update
       parameters:
       - name: Accept-Language
@@ -459,7 +469,7 @@ paths:
                 $ref: '#/components/schemas/Error'
     delete:
       tags:
-      - Parties
+      - Party
       operationId: email.delete
       parameters:
       - name: Accept-Language
@@ -709,7 +719,7 @@ paths:
   /parties/{party_id}/addresses/{address_id}:
     patch:
       tags:
-      - Parties
+      - Party
       operationId: address.partial_update
       parameters:
       - name: Accept-Language
@@ -750,7 +760,7 @@ paths:
                 $ref: '#/components/schemas/Error'
     delete:
       tags:
-      - Parties
+      - Party
       operationId: address.delete
       parameters:
       - name: Accept-Language
@@ -813,6 +823,16 @@ paths:
           type: string
         style: form
         explode: false
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          format: int32
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+          format: int32
       responses:
         200:
           description: Search results
@@ -1176,6 +1196,9 @@ components:
           items:
             $ref: '#/components/schemas/Party_Summary'
     Party:
+      required:
+      - party_id
+      - party_type
       type: object
       properties:
         party_id:
@@ -1195,6 +1218,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Address'
+      discriminator:
+        propertyName: party_type
     PartyType:
       type: string
       enum:
